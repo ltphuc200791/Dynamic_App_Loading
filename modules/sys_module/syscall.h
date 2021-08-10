@@ -49,6 +49,7 @@
 */
 typedef struct {
     uint8_t (*SetLed)(uint8_t Led_Num, uint8_t Led_State);
+    void (*printf)(const char * str);
 }sys_struct;
 
 #ifdef KERNEL

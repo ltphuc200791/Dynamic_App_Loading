@@ -35,8 +35,13 @@
 
 #ifdef KERNEL
 
+void print(const char * str){
+    DBUG("App: %s", str);
+}
+
 sys_struct sys = {
     .SetLed = SetLed,
+    .printf = print
 };
 
 #else

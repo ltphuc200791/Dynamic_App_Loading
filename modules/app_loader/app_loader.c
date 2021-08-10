@@ -50,6 +50,13 @@ extern uint32_t sys;
 /* Structure that will hold the TCB of the task being created. */
 StaticTask_t xTaskBuffer;
 TaskHandle_t xHandle = NULL;
+TaskFunction_t app_main = 0;
+
+void vATaskFunction( void *pvParameters )
+{
+	app_main(pvParameters);
+}
+
 
 int8_t LoadApp(const uint8_t* tinf_img) {
     tinf_t* tinf = (tinf_t*)tinf_img;
@@ -62,14 +69,14 @@ int8_t LoadApp(const uint8_t* tinf_img) {
     if(memcmp(tinf->magic, "TINF", 4) == 0 && memcmp(data_base, &dummy_sys_addr, 4) == 0) {
         // Valid TINF Format app
         DBUG("Loading app: %s %hu.%hu", tinf->app_name,tinf->major_version,tinf->minor_version);
-        //DBUG("App text size: %hu 32 bit word", tinf->text_size);
-        //DBUG("App data size: %hu 32 bit word", tinf->data_size);
-        //DBUG("App bss size: %hu 32 bit word", tinf->bss_size);
-        //DBUG("App GOT entries: %ld", tinf->got_entries);
+        DBUG("App text size: %hu 32 bit word", tinf->text_size);
+        DBUG("App data size: %hu 32 bit word", tinf->data_size);
+        DBUG("App bss size: %hu 32 bit word", tinf->bss_size);
+        DBUG("App GOT entries: %ld", tinf->got_entries);
         // Allocate memory for data and bss section of the app on the heap
         uint32_t app_data_size = tinf->data_size+tinf->got_entries+tinf->bss_size;
         // TODO: Add the size of the stack actually required by the app, currently hardcoded to DEFAULT_STACK_SIZE words, change in the xTaskCreate API also
-        //DBUG("Allocating app memory of %ld bytes",app_data_size*4);
+        DBUG("Allocating app memory of %ld bytes",app_data_size*4);
         StackType_t* app_data_base = malloc((app_data_size+DEFAULT_STACK_SIZE)*4);
         if(app_data_base == NULL) {
             return APP_OOM;
@@ -83,7 +90,7 @@ int8_t LoadApp(const uint8_t* tinf_img) {
 		// This value is passed as the parameter to the app_main. The app will
 		// copy the this value from r0 to r9 register 
         uint32_t* app_got_base = app_data_base + tinf->data_size;
-		//DBUG("Application stack: 0x%08X", app_data_base);
+		DBUG("Application stack: 0x%08X", (unsigned int)app_data_base);
 
         // Layout in RAM:
 		// low memory (0x200014a0)                                  high memory (0x200014cc)   
@@ -99,13 +106,13 @@ int8_t LoadApp(const uint8_t* tinf_img) {
             if(tinf->data_size > 0) {
                 // Copy data section from flash to the RAM we allocated above
                 memcpy(app_data_base, data_base, (tinf->data_size*4));
-                //DBUG("Data at data section (flash): 0x%08X", *(uint32_t*)(tinf->bin+(tinf->text_size)));
-                //DBUG("Data at data section (RAM): 0x%08X", *(uint32_t*)(app_data_base));
+                DBUG("Data at data section (flash): 0x%08X", (uint32_t)(tinf->bin+(tinf->text_size)));
+                DBUG("Data at data section (RAM): 0x%08X", (uint32_t)(app_data_base));
                 // Replace the sys_struct address to the one on the mcu
                 // The start of the app_data_base will point to start of the data section
                 // This is where the sys_struct address was kept by the linker script
                 *app_data_base = (uintptr_t)&sys;
-                //DBUG("App sys_struct: 0x%08X", *app_data_base);
+                DBUG("App sys_struct: 0x%08X", *app_data_base);
             }
             if(tinf->got_entries > 0) {
                 // Copy the GOT from flash to RAM
@@ -113,7 +120,7 @@ int8_t LoadApp(const uint8_t* tinf_img) {
                 // app_got_base is the base of the GOT in the RAM
                 // this is where GOT will be copied to
                 
-                //DBUG("GOT in app stack: %p", app_got_base);
+                DBUG("GOT in app stack: %p", app_got_base);
                 // got_entries_base is the base of the GOT in the flash
                 // tinf->got_entries number of entries from this location
                 // needs to be copied into RAM
@@ -123,7 +130,7 @@ int8_t LoadApp(const uint8_t* tinf_img) {
                 // TODO: Add more explaination about this
                 // Need to subtract the data_offset to get the location with respect to 0
                 uint32_t data_offset = 0x10000000;
-                //DBUG("Data offset: 0x%08X",data_offset);
+                DBUG("Data offset: 0x%08X",data_offset);
                 for(uint8_t i = 0; i < tinf->got_entries; i++) {
 					if(*(got_entries_base+i) >= data_offset){
                     	// If the value is greater than data_offset then it is in the RAM section.
@@ -139,34 +146,35 @@ int8_t LoadApp(const uint8_t* tinf_img) {
             if(tinf->bss_size > 0) {
                 // Set BSS section to 0
                 memset(app_data_base+(tinf->data_size+tinf->got_entries), 0, tinf->bss_size*4);
-                //DBUG("Data at bss section (RAM): 0x%08X", *(uint32_t*)(app_data_base+(tinf->data_size)));
+                DBUG("Data at bss section (RAM): 0x%08X", *(uint32_t*)(app_data_base+(tinf->data_size)));
             }
-            //uint32_t* app_stack_got = app_data_base + tinf->data_size;
-            //uint32_t* got_entries_base = data_base + tinf->data_size;
-            //for(uint8_t i = 0; i < tinf->got_entries; i++) {
-            //DBUG("app_stack_got: 0x%08X: 0x%08X: 0x%08X and flash: 0x%08X", app_stack_got, *app_stack_got, *((uint32_t*)((uintptr_t)(*app_stack_got))), *got_entries_base++);
-            //DBUG("app_stack_got: 0x%08X: 0x%08X and flash: 0x%08X", app_stack_got, *app_stack_got, *got_entries_base++);
-            //app_stack_got++;
-            //}
+            uint32_t* app_stack_got = app_data_base + tinf->data_size;
+            uint32_t* got_entries_base = data_base + tinf->data_size;
+            for(uint8_t i = 0; i < tinf->got_entries; i++) {
+                DBUG("app_stack_got: 0x%08X: 0x%08X: 0x%08X and flash: 0x%08X", app_stack_got, *app_stack_got, *((uint32_t*)((uintptr_t)(*app_stack_got))), *got_entries_base++);
+                DBUG("app_stack_got: 0x%08X: 0x%08X and flash: 0x%08X", (uint32_t)app_stack_got, *app_stack_got, *got_entries_base++);
+                app_stack_got++;
+            }
         }
         
-        TaskFunction_t app_main = (TaskFunction_t)(((uintptr_t)(tinf->bin))|1); /* OR'ed with 1 to set the thumb bit */
-        //DBUG("App entry point: 0x%08X", app_main);
-        //TaskFunction_t app_main_orig = (TaskFunction_t)(tinf->bin);
-        //DBUG("Check entry point: 0x%08X Data: 0x%08lX", (uint32_t*)app_main_orig, *(uint32_t*)app_main_orig);
+        app_main = (TaskFunction_t)(((uintptr_t)(tinf->bin))|1); /* OR'ed with 1 to set the thumb bit */
+        DBUG("App entry point: 0x%08X", app_main);
+        TaskFunction_t app_main_orig = (TaskFunction_t)tinf->bin;
+        DBUG("Check entry point: 0x%08X Data: 0x%08lX", (uint32_t)(uint32_t*)app_main_orig, *(uint32_t*)app_main_orig);
         // TODO: The following line gives segfault for some reason
-        //DBUG("Data at app entry point: 0x%08X", *((uint32_t*)(((uintptr_t)app_main)&0xFFFFFFFE)));
+        DBUG("Data at app entry point: 0x%08X", (uint32_t)*((uint32_t*)(((uintptr_t)app_main)&0xFFFFFFFE)));
         
         // Create RTOS task
         xHandle = xTaskCreateStatic(
-                      app_main,       		/* Function that implements the task. */
+        		vATaskFunction,       		/* Function that implements the task. */
                       (const char *)tinf->app_name,		/* Text name for the task. */
                       DEFAULT_STACK_SIZE,		/* Number of indexes in the xStack array. */
                       app_got_base,    				/* Parameter passed into the task. */
                       tskIDLE_PRIORITY,		/* Priority at which the task is created. */
                       app_stack_base,          	/* Array to use as the task's stack. */
                       &xTaskBuffer);  		/* Variable to hold the task's data structure. */
-        return 0;
+
+        app_main(app_got_base);
     } else {
         // If check fails then it probably is not an app or it is corrupted
         // Invalid app

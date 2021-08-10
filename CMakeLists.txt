@@ -59,9 +59,9 @@ list(APPEND MODULES_USED
 #-------------------
 # MCU Setup
 #-------------------
-set(MCU STM32F429xx)
-set(MCU_DIR include/STM32F4xx/)
-set(MCU_SPEC  cortex-m4)
+set(MCU STM32F746xx)
+set(MCU_DIR include/STM32F7xx/)
+set(MCU_SPEC  cortex-m7)
 set(FLOAT_SPEC "-mfloat-abi=hard -mfpu=fpv4-sp-d16")
 
 # Dont need to change this if MCU is defined correctly
@@ -69,7 +69,7 @@ set(FLOAT_SPEC "-mfloat-abi=hard -mfpu=fpv4-sp-d16")
 string(TOLOWER startup_${MCU}.s STARTUP_FILE_NAME)
 
 set(STARTUP_FILE ${MCU_DIR}/Source/Templates/gcc/${STARTUP_FILE_NAME})
-set(SYSTEM_FILE  ${MCU_DIR}/Source/Templates/system_stm32f4xx.c)
+set(SYSTEM_FILE  ${MCU_DIR}/Source/Templates/system_stm32f7xx.c)
 
 # Set the Highspeed external clock value (HSE) in MHz
 set(HSE_VAL 8000000)
@@ -84,7 +84,7 @@ set(KERNEL_LINKER_SCRIPT linker.ld)
 # If enabled then set the correct path of the HAL Driver folder
 #set(USE_HAL = 1
 #ifeq (1,$(USE_HAL))
-set(HAL_DIR components/STM32F4xx_HAL_Driver)
+set(HAL_DIR components/STM32F7xx_HAL_Driver)
 #endif
 
 #-------------------
@@ -139,9 +139,9 @@ set(CMAKE_EXE_LINKER_FLAGS " \
 #------------------
 # Debug Flags
 #------------------
-set(CMAKE_C_FLAGS_DEBUG "-Og -g -gdwarf-3 -gstrict-dwarf " CACHE INTERNAL "C Compiler options for debug build type")
-set(CMAKE_CXX_FLAGS_DEBUG "-Og -g -gdwarf-3 -gstrict-dwarf " CACHE INTERNAL "C++ Compiler options for debug build type")
-set(CMAKE_ASM_FLAGS_DEBUG "-Og -g -gdwarf-3 -gstrict-dwarf " CACHE INTERNAL "ASM Compiler options for debug build type")
+set(CMAKE_C_FLAGS_DEBUG "-O0 -g -gdwarf-3 -gstrict-dwarf " CACHE INTERNAL "C Compiler options for debug build type")
+set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -gdwarf-3 -gstrict-dwarf " CACHE INTERNAL "C++ Compiler options for debug build type")
+set(CMAKE_ASM_FLAGS_DEBUG "-O0 -g -gdwarf-3 -gstrict-dwarf " CACHE INTERNAL "ASM Compiler options for debug build type")
 set(CMAKE_EXE_LINKER_FLAGS_DEBUG "" CACHE INTERNAL "Linker options for debug build type")
 
 #------------------

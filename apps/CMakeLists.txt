@@ -79,9 +79,9 @@ set(CMAKE_EXE_LINKER_FLAGS " \
 #------------------
 # Debug Flags
 #------------------
-set(CMAKE_C_FLAGS_DEBUG "-Og -g -gdwarf-3 -gstrict-dwarf " CACHE INTERNAL "C Compiler options for debug build type")
-set(CMAKE_CXX_FLAGS_DEBUG "-Og -g -gdwarf-3 -gstrict-dwarf " CACHE INTERNAL "C++ Compiler options for debug build type")
-set(CMAKE_ASM_FLAGS_DEBUG "-Og -g -gdwarf-3 -gstrict-dwarf " CACHE INTERNAL "ASM Compiler options for debug build type")
+set(CMAKE_C_FLAGS_DEBUG "-O0 -g -gdwarf-3 -gstrict-dwarf " CACHE INTERNAL "C Compiler options for debug build type")
+set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -gdwarf-3 -gstrict-dwarf " CACHE INTERNAL "C++ Compiler options for debug build type")
+set(CMAKE_ASM_FLAGS_DEBUG "-O0 -g -gdwarf-3 -gstrict-dwarf " CACHE INTERNAL "ASM Compiler options for debug build type")
 set(CMAKE_EXE_LINKER_FLAGS_DEBUG "" CACHE INTERNAL "Linker options for debug build type")
 
 #------------------
@@ -189,10 +189,10 @@ if(CMAKE_CROSSCOMPILING STREQUAL "1")
             ${CMAKE_CURRENT_LIST_DIR}/lib
             )
 
-        target_link_libraries(${APP_NAME}.elf
-            PRIVATE
-            ${CMAKE_CURRENT_LIST_DIR}/lib/libsys_module.a
-            )
+        # target_link_libraries(${APP_NAME}.elf
+        #     PRIVATE
+        #     ${CMAKE_CURRENT_LIST_DIR}/lib/libsys_module.a
+        #     )
 
         if(APP_COMPILE_FLAGS STREQUAL " ")
         else()
